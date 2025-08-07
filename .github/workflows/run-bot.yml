@@ -1,0 +1,31 @@
+name: Run BankNifty Bot
+
+on:
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🚀 Run bot script
+        run: python bot.py
+
+      - name: 💾 Commit report
+        run: |
+          git config --global user.name "GitHub Bot"
+          git config --global user.email "bot@example.com"
+          git add report.md
+          git commit -m "Update trading report"
+          git push
