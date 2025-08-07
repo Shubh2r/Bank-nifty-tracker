@@ -81,14 +81,25 @@ def get_global_sentiment():
 # 📘 BankNifty analysis
 def analyze_banknifty():
     chain = nse_optionchain_scrapper("BANKNIFTY")
-    underlying = chain["records"]["underlyingValue"]
-    pcr = round(chain["records"]["totalPutOpenInterest"] / chain["records"]["totalCallOpenInterest"], 2)
-    expiry_list = chain["records"]["expiryDates"]
+    underlying = chain["records"].get("underlyingValue", 0)
+
+    try:
+        total_put_oi = chain["records"]["totalPutOpenInterest"]
+        total_call_oi = chain["records"]["totalCallOpenInterest"]
+        pcr = round(total_put_oi / total_call_oi, 2)
+    except KeyError:
+        print("⚠️ PCR data not available — using fallback value")
+        pcr = 1.0  # Neutral fallback
+
+    expiry_list = chain["records"].get("expiryDates", [])
     today = datetime.date.today()
 
-    valid_expiry = next((e for e in expiry_list if (datetime.datetime.strptime(e, "%d-%b-%Y").date() - today).days >= 3), expiry_list[0])
-    strikes = chain["records"]["data"]
+    valid_expiry = next(
+        (e for e in expiry_list if (datetime.datetime.strptime(e, "%d-%b-%Y").date() - today).days >= 3),
+        expiry_list[0] if expiry_list else "N/A"
+    )
 
+    strikes = chain["records"].get("data", [])
     filtered = [s for s in strikes if s.get("CE") and s.get("PE") and s["strikePrice"] > 0]
     budget_ce = [s for s in filtered if filter_by_budget(s, "CE")]
     budget_pe = [s for s in filtered if filter_by_budget(s, "PE")]
