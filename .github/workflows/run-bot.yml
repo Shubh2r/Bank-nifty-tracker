@@ -22,10 +22,18 @@ jobs:
       - name: 🚀 Run bot script
         run: python bot.py
 
-      - name: 💾 Commit report
+            - name: 💾 Commit report to reports/ folder
         run: |
           git config --global user.name "GitHub Bot"
           git config --global user.email "bot@example.com"
-          git add report.md
-          git commit -m "Update trading report"
+
+          mkdir -p reports
+          if [ -f report.md ]; then
+            mv report.md reports/report.md
+          elif [ ! -f reports/report.md ]; then
+            echo "# Report" > reports/report.md
+          fi
+
+          git add reports/report.md
+          git commit -m "Add or update report in reports folder" || echo "No changes to commit"
           git push
