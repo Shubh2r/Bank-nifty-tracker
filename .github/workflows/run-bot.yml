@@ -3,6 +3,9 @@ name: Run BankNifty Bot
 on:
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
+permissions:
+  contents: write
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
