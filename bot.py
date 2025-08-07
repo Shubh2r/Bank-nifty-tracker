@@ -33,7 +33,8 @@ def get_global_sentiment():
 
 def analyze_banknifty():
     chain = nse_optionchain_scrapper("BANKNIFTY")
-    pcr = round(chain["records"]["underlyingValue"] / 1000, 2)
+    underlying = chain["records"]["underlyingValue"]
+    pcr = round(chain["records"]["totalPutOpenInterest"] / chain["records"]["totalCallOpenInterest"], 2)
     expiry_list = chain["records"]["expiryDates"]
     today = datetime.date.today()
 
@@ -41,38 +42,63 @@ def analyze_banknifty():
     valid_expiry = next((e for e in expiry_list if (datetime.datetime.strptime(e, "%d-%b-%Y").date() - today).days >= 3), expiry_list[0])
     strikes = chain["records"]["data"]
 
-    # Find top PE strike by open interest
-    top_pe = max(strikes, key=lambda x: x.get("PE", {}).get("openInterest", 0))
-    strike_price = top_pe["strikePrice"]
-
-    entry = 628.4
-    target = round(entry * 1.5, 2)
-    stop_loss = round(entry * 0.7, 2)
+    # Filter strikes with decent OI
+    filtered = [s for s in strikes if s.get("CE") and s.get("PE") and s["strikePrice"] > 0]
+    top_ce = max(filtered, key=lambda x: x["CE"]["openInterest"])
+    top_pe = max(filtered, key=lambda x: x["PE"]["openInterest"])
 
     print("\n📘 BANKNIFTY Option Chain Analysis")
     print(f"📈 PCR: {pcr}")
-    print(f"🔢 Top PE Strike: {strike_price}")
     print(f"📆 Expiry: {valid_expiry}")
-    print(f"🎫 Symbol: OPTIDXBANKNIFTY{valid_expiry.replace('-', '')}PE{strike_price}.00")
+    print(f"💹 Underlying: ₹{underlying}")
+    print(f"🔢 Top CE Strike: {top_ce['strikePrice']} (OI: {top_ce['CE']['openInterest']})")
+    print(f"🔢 Top PE Strike: {top_pe['strikePrice']} (OI: {top_pe['PE']['openInterest']})")
+
+    return {
+        "pcr": pcr,
+        "underlying": underlying,
+        "expiry": valid_expiry,
+        "top_ce": top_ce,
+        "top_pe": top_pe
+    }
+
+def generate_trade_signal(data, sentiment_score):
+    pcr = data["pcr"]
+    ce_strike = data["top_ce"]["strikePrice"]
+    pe_strike = data["top_pe"]["strikePrice"]
+    expiry = data["expiry"]
+
+    print("\n📍 Trade Signal")
+
+    # Filter logic
+    if sentiment_score > 0 and pcr < 0.9:
+        symbol = f"OPTIDXBANKNIFTY{expiry.replace('-', '')}CE{ce_strike}.00"
+        entry = 628.4
+        target = round(entry * 1.5, 2)
+        stop_loss = round(entry * 0.7, 2)
+        print(f"✅ CALL Option Selected")
+    elif sentiment_score < 0 and pcr > 1.1:
+        symbol = f"OPTIDXBANKNIFTY{expiry.replace('-', '')}PE{pe_strike}.00"
+        entry = 628.4
+        target = round(entry * 1.5, 2)
+        stop_loss = round(entry * 0.7, 2)
+        print(f"✅ PUT Option Selected")
+    else:
+        print("⚠️ Signal: Neutral — No clear trend")
+        return
+
+    print(f"🎫 Symbol: {symbol}")
     print(f"💰 Entry: ₹{entry}")
     print(f"🎯 Target: ₹{target}")
     print(f"⛔ Stop-Loss: ₹{stop_loss}")
-    return pcr, strike_price, valid_expiry
-
-def generate_trade_signal(pcr, sentiment_score):
-    print("\n📍 Trade Signal")
-    if sentiment_score < 0 and pcr > 1:
-        print("✅ Signal: PUT Option — Bearish Bias")
-    elif sentiment_score > 0 and pcr < 1:
-        print("✅ Signal: CALL Option — Bullish Bias")
-    else:
-        print("⚠️ Signal: Neutral — Wait for confirmation")
+    print(f"📊 Sentiment Score: {sentiment_score}")
+    print(f"📈 PCR: {pcr}")
 
 def main():
     print(f"# 📅 Report - {datetime.datetime.now().strftime('%d-%b-%Y %H:%M')}\n")
     sentiment_score = get_global_sentiment()
-    pcr, strike_price, expiry = analyze_banknifty()
-    generate_trade_signal(pcr, sentiment_score)
+    banknifty_data = analyze_banknifty()
+    generate_trade_signal(banknifty_data, sentiment_score)
 
 if __name__ == "__main__":
     main()
