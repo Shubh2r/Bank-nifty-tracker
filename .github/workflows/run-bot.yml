@@ -4,17 +4,24 @@ on:
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 permissions:
-  contents: write
   contents: write  # ✅ Enables push access
 
 jobs:
   run-bot:
-@@ -22,20 +22,18 @@
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🚀 Run bot script
-        run: python bot.py
       - name: 🚀 Run bot script and generate report
         run: |
           echo "# Report - $(date)" > report.md
@@ -26,12 +33,8 @@ jobs:
           git config --global user.email "bot@example.com"
 
           mkdir -p reports
-          if [ -f report.md ]; then
-            mv report.md reports/report.md
-          elif [ ! -f reports/report.md ]; then
-            echo "# Report" > reports/report.md
-          fi
           mv report.md reports/report.md
 
           git add reports/report.md
-          git commit -m "Add or update report in reports folder" || echo "No changes to commit"
+          git commit -m "📊 Add or update report in reports folder" || echo "No changes to commit"
+          git push
