@@ -9,11 +9,17 @@ symbol = "^NSEBANK"  # Bank Nifty Index
 # Fetch Bank Nifty data
 data = yf.download(symbol, period="7d", interval="1h")
 
+if data.empty:
+    raise ValueError("No data received for Bank Nifty. Check symbol or internet access.")
+
+trend = "Bullish" if data["Close"].iloc[-1] > data["Open"].iloc[0] else "Bearish"
+entry_price = round(data["Close"].iloc[-1], 2)
+
 # Simple analysis: trend direction
-trend = "Bullish" if data["Close"][-1] > data["Open"][0] else "Bearish"
+trend = "Bullish" if data["Close"].iloc[-1] > data["Open"].iloc[0] else "Bearish"
 
 # Generate a mock recommendation
-entry_price = round(data["Close"][-1], 2)
+entry_price = round(data["Close"].iloc[-1], 2)
 target1 = round(entry_price * 1.02, 2)
 target2 = round(entry_price * 1.04, 2)
 target3 = round(entry_price * 1.06, 2)
