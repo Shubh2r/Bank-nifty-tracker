@@ -56,8 +56,8 @@ def get_index_change(ticker):
     data = yf.download(ticker, period="2d", progress=False)
     if data.empty or len(data) < 2:
         return 0.0
-    close_yesterday = data["Close"].iloc[-2]
-    close_today = data["Close"].iloc[-1]
+    close_yesterday = float(data["Close"].iloc[-2])
+    close_today = float(data["Close"].iloc[-1])
     change = round(close_today - close_yesterday, 2)
     percent = round((change / close_yesterday) * 100, 2)
     return percent
