@@ -3,6 +3,9 @@ from nsepython import *
 import datetime
 import csv
 import pandas as pd
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # 🎯 Budget filter
 def filter_by_budget(strike_data, option_type, budget_min=500, budget_max=600):
@@ -50,25 +53,22 @@ def weekly_summary():
 
 # 🌐 Global sentiment
 def get_index_change(ticker):
-    data = yf.download(ticker, period="2d")
-    if data.empty:
-        return "N/A", "N/A"
-    change = round(data["Close"].iloc[-1] - data["Close"].iloc[-2], 2)
-    percent = round((change / data["Close"].iloc[-2]) * 100, 2)
-    return change, percent
+    data = yf.download(ticker, period="2d", progress=False)
+    if data.empty or len(data) < 2:
+        return 0.0
+    close_yesterday = data["Close"].iloc[-2]
+    close_today = data["Close"].iloc[-1]
+    change = round(close_today - close_yesterday, 2)
+    percent = round((change / close_yesterday) * 100, 2)
+    return percent
 
 def get_global_sentiment():
-    dow, dow_pct = get_index_change("^DJI")
-    nasdaq, nasdaq_pct = get_index_change("^IXIC")
-    sp500, sp500_pct = get_index_change("^GSPC")
-    sgx, sgx_pct = get_index_change("^NSEI")
+    dow_pct = get_index_change("^DJI")
+    nasdaq_pct = get_index_change("^IXIC")
+    sp500_pct = get_index_change("^GSPC")
+    sgx_pct = get_index_change("^NSEI")
 
-    sentiment_score = sum([
-        float(dow_pct) if dow_pct != "N/A" else 0,
-        float(nasdaq_pct) if nasdaq_pct != "N/A" else 0,
-        float(sp500_pct) if sp500_pct != "N/A" else 0,
-        float(sgx_pct) if sgx_pct != "N/A" else 0
-    ])
+    sentiment_score = dow_pct + nasdaq_pct + sp500_pct + sgx_pct
 
     print("🌐 Global Indices Sentiment")
     print(f"📊 Dow: {dow_pct}%")
