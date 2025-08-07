@@ -22,7 +22,7 @@ jobs:
       - name: 🚀 Run bot script
         run: python bot.py
 
-            - name: 💾 Commit report to reports/ folder
+      - name: 💾 Commit report to reports/ folder
         run: |
           git config --global user.name "GitHub Bot"
           git config --global user.email "bot@example.com"
